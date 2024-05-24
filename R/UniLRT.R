@@ -42,7 +42,7 @@ UniLRT <- function(sample_data, significance_level){
     var0 <- sapply(1:length(sample_data_list), function(i) (sum((sample_data_list[[i]] - mu0[i])^2)) / n[i])
     w0 <- n / var0
     repeat {
-      new_mu0 <- ufit(sapply(sample_data_list, mean), w0)
+      new_mu0 <- ufit(y = mu0, imode = ceiling((length(sample_data_list))/2), w = w0)[[2]]
       new_var0 <- sapply(1:length(sample_data_list), function(i) (sum((sample_data_list[[i]] - new_mu0[i])^2)) / n[i])
       new_w0 <- n / new_var0
 
