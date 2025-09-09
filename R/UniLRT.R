@@ -1,4 +1,4 @@
-#' Likelihood ratio test for testing equality means against umbrella-ordered alternatives (peak = ceiling(k/2) = h) in one-way ANOVA
+#' Likelihood ratio test for testing equality means against umbrella-ordered alternatives (peak = h) in one-way ANOVA
 #' @export
 #' @param sample_data list
 #' @param significance_level numeric
@@ -9,7 +9,7 @@
 #' @importFrom Iso pava
 #' @importFrom stats qchisq
 #' @author Subha Halder
-UniLRT <- function(sample_data, significance_level){
+UniLRT <- function(sample_data, significance_level, h){
   set.seed(456)
   R_MLE <- function(X, n) {
     X1 <- X[-1]
@@ -105,7 +105,7 @@ UniLRT <- function(sample_data, significance_level){
     var0 <- sapply(1:length(sample_data_list), function(i) (sum((sample_data_list[[i]] - mu0[i])^2)) / n[i])
     w0 <- n / var0
     repeat {
-      new_mu0 <- unimodal(X = sapply(sample_data_list, mean), w = w0, lmode = ceiling(length(sample_data_list)/2))
+      new_mu0 <- unimodal(X = sapply(sample_data_list, mean), w = w0, lmode = h)
       new_var0 <- sapply(1:length(sample_data_list), function(i) (sum((sample_data_list[[i]] - new_mu0[i])^2)) / n[i])
       new_w0 <- n / new_var0
 
@@ -143,3 +143,4 @@ UniLRT <- function(sample_data, significance_level){
   }
   return(paste("Critical value:", quantile_value, "; UniLRT Test statistic:", lambda, "; Result:", result))
 }
+
