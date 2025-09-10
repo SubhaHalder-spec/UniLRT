@@ -129,7 +129,7 @@ UniLRT <- function(sample_data, significance_level, h){
 
     return(var0)
   }
-  num_samples = 10000
+  num_samples = 100000
   n <- sapply(sample_data, length)
   lambda_values_star <- numeric(num_samples)
   for (i in 1:num_samples) {
@@ -150,6 +150,7 @@ UniLRT <- function(sample_data, significance_level, h){
   }
   return(paste("Critical value:", quantile_value, "; UniLRT Test statistic:", lambda, "; Result:", result))
 }
+
 
 
 
