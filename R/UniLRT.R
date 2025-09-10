@@ -2,14 +2,23 @@
 #' @export
 #' @param sample_data list
 #' @param significance_level numeric
+#' @param h numeric
 #' @return Critical value numeric
 #' @return Test statistic value numeric
 #' @return Result Character
-#' @details Testing of H_0:mu_1 = mu_2 = ... = mu_k vs H_1:mu_1 <=.....<= mu_(h-1)<= mu_h >= mu_(h+1)>=....>= mu_k (at least one strict inequality), where mu_i represents the population means of the i-th treatment. The input consists of two variables: sample_data and significance_level. The output consists of the critical value, the UniLRT test statistic value, and the result, which indicates whether to reject or not reject the null hypothesis.
+#' @details Testing of H_0:mu_1 = mu_2 = ... = mu_k vs H_1:mu_1 <=.....<= mu_(h-1)<= mu_h >= mu_(h+1)>=....>= mu_k (at least one strict inequality), where mu_i represents the population means of the i-th treatment. The input consists of three variables: sample_data, significance_level, and peak = h. The output consists of the critical value, the UniLRT test statistic value, and the result, which indicates whether to reject or not reject the null hypothesis.
 #' @importFrom Iso pava
 #' @importFrom stats qchisq
 #' @author Subha Halder
 UniLRT <- function(sample_data, significance_level, h){
+  # basic checks & cleanup
+  sample_data <- lapply(sample_data, function(x) x[!is.na(x)])
+  num_datasets <- length(sample_data)
+  if (num_datasets < 3) stop("Need at least 3 groups (length(sample_data) >= 3).")
+  if (!is.numeric(h) || h != as.integer(h)) stop("'peak' must be an integer.")
+  if (h <= 1 || h >= num_datasets) {
+    stop(paste("Error: 'peak' must be greater than 1 and less than", num_datasets, "."))
+  }
   set.seed(456)
   R_MLE <- function(X, n) {
     X1 <- X[-1]
@@ -99,13 +108,13 @@ UniLRT <- function(sample_data, significance_level, h){
     return(var1)
   }
 
-  LRT_H1_new <- function(sample_data_list) {
+  LRT_H1_new <- function(sample_data_list, H) {
     n <- sapply(sample_data_list, length)
     mu0 <- sapply(sample_data_list, mean)
     var0 <- sapply(1:length(sample_data_list), function(i) (sum((sample_data_list[[i]] - mu0[i])^2)) / n[i])
     w0 <- n / var0
     repeat {
-      new_mu0 <- unimodal(X = sapply(sample_data_list, mean), w = w0, lmode = h)
+      new_mu0 <- unimodal(X = sapply(sample_data_list, mean), w = w0, lmode = H)
       new_var0 <- sapply(1:length(sample_data_list), function(i) (sum((sample_data_list[[i]] - new_mu0[i])^2)) / n[i])
       new_w0 <- n / new_var0
 
@@ -120,20 +129,18 @@ UniLRT <- function(sample_data, significance_level, h){
 
     return(var0)
   }
-  sample_data <- lapply(sample_data, function(x) x[!is.na(x)])
   num_samples = 100000
-  num_datasets <- length(sample_data)
   n <- sapply(sample_data, length)
   lambda_values_star <- numeric(num_samples)
   for (i in 1:num_samples) {
     bootstrap_samples <- lapply(sample_data, function(x) rnorm(n = length(x), mean = 0, sd = sqrt(var(x))))
-    V_R_star <- LRT_H1_new(bootstrap_samples) / LRT_H0_new(bootstrap_samples)
+    V_R_star <- LRT_H1_new(bootstrap_samples, h) / LRT_H0_new(bootstrap_samples)
     weights <- sapply(1:num_datasets, function(i) V_R_star[i]^(length(bootstrap_samples[[i]]) / 2))
     lambda_values_star[i] <- prod(weights)
   }
   sort_lambda_star <- sort(lambda_values_star)
   quantile_value <- quantile(sort_lambda_star, probs = significance_level)
-  V_R <- LRT_H1_new(sample_data) / LRT_H0_new(sample_data)
+  V_R <- LRT_H1_new(sample_data, h) / LRT_H0_new(sample_data)
   weights <- sapply(1:num_datasets, function(i) V_R[i]^(length(sample_data[[i]]) / 2))
   lambda <- prod(weights)
   if (lambda < quantile_value) {
@@ -143,4 +150,5 @@ UniLRT <- function(sample_data, significance_level, h){
   }
   return(paste("Critical value:", quantile_value, "; UniLRT Test statistic:", lambda, "; Result:", result))
 }
+
 
